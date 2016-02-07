@@ -1,0 +1,17 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	package="com.mishiranu.dashchan.lib.webm"
+	android:versionCode="1"
+	android:versionName="1.0">
+	
+	<uses-sdk android:minSdkVersion="14" android:targetSdkVersion="23" />
+	
+	<uses-feature android:name="lib.extension" />
+	
+	<application android:icon="@drawable/ic_launcher" android:allowBackup="false" android:label="@string/text_app_name">
+		
+		<meta-data android:name="lib.extension.name" android:value="webm" />
+		<meta-data android:name="lib.extension.source" android:value="https://raw.githubusercontent.com/Mishiranu/Dashchan/master/update/data.json" />
+		
+	</application>
+	
+</manifest>
