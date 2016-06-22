@@ -10,7 +10,7 @@
 	<application android:icon="@drawable/ic_launcher" android:allowBackup="false" android:label="@string/text_app_name">
 		
 		<meta-data android:name="lib.extension.name" android:value="webm" />
-		<meta-data android:name="lib.extension.source" android:value="https://raw.githubusercontent.com/Mishiranu/Dashchan/master/update/data.json" />
+		<meta-data android:name="lib.extension.source" android:value="//raw.githubusercontent.com/Mishiranu/Dashchan/master/update/data.json" />
 		
 	</application>
 	
