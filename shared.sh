@@ -2,30 +2,30 @@
 
 output=`pwd`/output
 output_ffmpeg=$output/ffmpeg
-output_libyuv=$output/yuv
+output_yuv=$output/yuv
 temp_ffmpeg=$output/temp/ffmpeg
-temp_libyuv=$output/temp/yuv
+temp_yuv=$output/temp/yuv
 
 rm -R $output_ffmpeg 2> /dev/null
-rm -R $output_libyuv 2> /dev/null
+rm -R $output_yuv 2> /dev/null
 mkdir $output 2> /dev/null
 mkdir $output/temp 2> /dev/null
 
 if [ ! -d $temp_ffmpeg ]; then
-	git clone -b n3.1.1 git://source.ffmpeg.org/ffmpeg.git $temp_ffmpeg \
+	git clone -b n3.0.2 git://source.ffmpeg.org/ffmpeg.git $temp_ffmpeg \
 		|| { rm -R $temp_ffmpeg 2> /dev/null; exit 1; }
 fi
 
-if [ ! -d $temp_libyuv ]; then
-	git clone https://chromium.googlesource.com/libyuv/libyuv $temp_libyuv \
-		|| { rm -R $temp_libyuv 2> /dev/null; exit 1; }
-	cd $temp_libyuv
+if [ ! -d $temp_yuv ]; then
+	git clone https://chromium.googlesource.com/libyuv/libyuv $temp_yuv \
+		|| { rm -R $temp_yuv 2> /dev/null; exit 1; }
+	cd $temp_yuv
 	result=0
 	sed -i -- 's/LOCAL_MODULE := libyuv_static/LOCAL_MODULE := yuv/g' Android.mk
 	result= [ $result -o $? ]
 	sed -i -- 's/include $(BUILD_STATIC_LIBRARY)/include $(BUILD_SHARED_LIBRARY)/g' Android.mk
 	result= [ $result -o $? ]
-	if [ ! $result -eq 0 ]; then cd ..; rm -R $temp_libyuv; exit 1; fi
+	if [ ! $result -eq 0 ]; then cd ..; rm -R $temp_yuv; exit 1; fi
 fi
 
 ffmpeg_options="--enable-cross-compile \
@@ -79,13 +79,13 @@ ffmpeg_build arm64-v8a arm64 aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin
 ffmpeg_build x86 x86 x86-4.9/prebuilt/linux-x86_64/bin/i686-linux-android- \
 	android-16/arch-x86 "--enable-pic --disable-asm" || exit 1
 
-cd $temp_libyuv
+cd $temp_yuv
 $ANDROID_NDK_HOME/ndk-build APP_BUILD_SCRIPT=Android.mk NDK_PROJECT_PATH=. \
 	APP_ABI="armeabi-v7a arm64-v8a x86" || exit 1
-mkdir $output_libyuv
-mkdir $output_libyuv/shared
-cp -R include $output_libyuv
-cp -R libs/* $output_libyuv/shared
+mkdir $output_yuv
+mkdir $output_yuv/shared
+cp -R include $output_yuv
+cp -R libs/* $output_yuv/shared
 $ANDROID_NDK_HOME/ndk-build APP_BUILD_SCRIPT=Android.mk NDK_PROJECT_PATH=. clean
 
 if [ "$1" != "--keep-temp" ]; then cd $output; rm -R $output/temp 2> /dev/null; fi
