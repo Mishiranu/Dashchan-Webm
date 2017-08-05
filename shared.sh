@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ffmpeg_version='n3.0.7'
+ffmpeg_version='n3.0.9'
 libyuv_version='cb9a58f25fbdf8382d68680f022959022f746ef2'
 
 [ -n "$ANDROID_NDK_HOME" ] || {
@@ -61,10 +61,13 @@ ffmpeg_options="--enable-cross-compile \
 	--enable-swresample \
 	--enable-swscale \
 	--enable-demuxer=matroska \
+	--enable-demuxer=mov \
 	--enable-decoder=vp8 \
 	--enable-decoder=vp9 \
+	--enable-decoder=h264 \
 	--enable-decoder=vorbis \
-	--enable-decoder=opus"
+	--enable-decoder=opus \
+	--enable-decoder=aac"
 
 ffmpeg_build() {
 	./configure \
