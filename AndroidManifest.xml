@@ -3,16 +3,16 @@
 	package="com.mishiranu.dashchan.lib.webm"
 	android:versionCode="1"
 	android:versionName="1.4">
-	
+
 	<uses-sdk android:minSdkVersion="16" android:targetSdkVersion="23" />
-	
+
 	<uses-feature android:name="lib.extension" />
-	
+
 	<application android:icon="@null" android:allowBackup="false" android:label="@string/text_app_name">
-		
+
 		<meta-data android:name="lib.extension.name" android:value="webm" />
 		<meta-data android:name="lib.extension.source" android:value="//raw.githubusercontent.com/Mishiranu/Dashchan/master/update/data.json" />
-		
+
 	</application>
-	
+
 </manifest>
