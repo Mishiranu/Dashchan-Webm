@@ -24,8 +24,10 @@ cores="$EXTERNAL_CORES"
 makeflags=
 [ -n "$cores" ] && makeflags="-j$((cores + 1))"
 
+sources_dav1d="$sources/dav1d"
 sources_ffmpeg="$sources/ffmpeg"
 sources_yuv="$sources/yuv"
+libraries_dav1d="$libraries/dav1d"
 libraries_ffmpeg="$libraries/ffmpeg"
 libraries_yuv="$libraries/yuv"
 external_ffmpeg="$external/ffmpeg"
@@ -61,11 +63,50 @@ ffmpeg_options=(
 	'--enable-demuxer=mov'
 	'--enable-decoder=vp8'
 	'--enable-decoder=vp9'
+	'--enable-libdav1d'
+	'--enable-decoder=libdav1d'
 	'--enable-decoder=h264'
 	'--enable-decoder=vorbis'
 	'--enable-decoder=opus'
 	'--enable-decoder=aac'
 )
+
+dav1d_build() {
+	local ndk_arch="$1"
+	local cpu_family="$2"
+	local cpu="$3"
+	local build="$4"
+	local build_cc="$5"
+	local target="$6"
+	local android="$7"
+	shift 7
+	local prefix="$toolchain/bin/$build-linux-$target"
+	local cc="$toolchain/bin/$build_cc-linux-$target$android-clang"
+	prepare_sources "$sources_dav1d"
+	cat > 'cross.txt' <<EOF
+[binaries]
+c = '$cc'
+strip = '$prefix-strip'
+[host_machine]
+system = 'android'
+cpu_family = '$cpu_family'
+cpu = '$cpu'
+endian = 'little'
+EOF
+	meson setup \
+		--prefix="$(pwd)/.prefix" \
+		--cross-file 'cross.txt' \
+		"$@" '.build'
+	ninja -C '.build' install
+	mkdir -p "$libraries_dav1d/$ndk_arch"
+	mv '.prefix/include' "$libraries_dav1d/$ndk_arch/include"
+	mv '.prefix/lib/'*.so "$libraries_dav1d/$ndk_arch"
+}
+
+rm -rf "$libraries_dav1d"
+dav1d_build 'armeabi-v7a' 'arm' 'armv7hl' 'arm' 'armv7a' 'androideabi' 16
+dav1d_build 'arm64-v8a' 'aarch64' 'arm64' 'aarch64' 'aarch64' 'android' 21
+dav1d_build 'x86' 'x86' 'i686' 'i686' 'i686' 'android' 16 -Denable_asm=false
 
 ffmpeg_build() {
 	local ndk_arch="$1"
@@ -78,11 +119,24 @@ ffmpeg_build() {
 	local prefix="$toolchain/bin/$build-linux-$target-"
 	local cc="$toolchain/bin/$build_cc-linux-$target$android-clang"
 	prepare_sources "$sources_ffmpeg"
+	mkdir -p '.prefix/bin'
+	cat > '.prefix/bin/pkg-config' <<EOF
+#!/bin/sh
+[ "\$1" = '--version' ] && exit 0
+[ "\$1" = '--exists' ] && [ "\$3" = 'dav1d' ] && exit 0
+[ "\$1" = '--cflags' ] && [ "\$2" = 'dav1d' ] &&
+echo $(printf '%q' "-I$libraries_dav1d/$ndk_arch/include") && exit 0
+[ "\$1" = '--libs' ] && [ "\$2" = 'dav1d' ] &&
+echo $(printf '%q' "-L$libraries_dav1d/$ndk_arch") -ldav1d && exit 0
+exit 1
+EOF
+	chmod a+x '.prefix/bin/pkg-config'
 	./configure \
 		--prefix='.prefix' \
 		--arch="$arch" --cross-prefix="$prefix" \
 		--sysroot="$toolchain/sysroot" \
 		--cc="$cc" --ld="$cc" \
+		--pkg-config='.prefix/bin/pkg-config' \
 		"$@" "${ffmpeg_options[@]}"
 	make $makeflags
 	make install

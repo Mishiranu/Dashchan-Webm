@@ -93,8 +93,9 @@ task sharedPrepare(type: ShellTask) {
 	script = file('shared-prepare.sh')
 	arguments = [sharedSources.absolutePath]
 	environment = [
-			FFMPEG_VERSION: '3.0.9',
-			YUV_VERSION: 'cb9a58f25fbdf8382d68680f022959022f746ef2',
+			DAV1D_VERSION: '0.7.1',
+			FFMPEG_VERSION: '4.3.1',
+			YUV_VERSION: '6afd9becdf58822b1da6770598d8597c583ccfad',
 	]
 	output = files(sharedSources)
 }
@@ -111,6 +112,7 @@ task sharedBuild(type: ShellTask) {
 }
 
 android.sourceSets.main.jniLibs.srcDirs = [
+		new File(sharedLibraries, 'dav1d'),
 		new File(sharedLibraries, 'ffmpeg'),
 		new File(sharedLibraries, 'yuv')
 ]
