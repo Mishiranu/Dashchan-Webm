@@ -1,15 +1,17 @@
 buildscript {
 	repositories {
+		google()
 		jcenter()
 	}
 
 	dependencies {
-		classpath 'com.android.tools.build:gradle:2.3.1'
+		classpath 'com.android.tools.build:gradle:3.6.4'
 	}
 }
 
 allprojects {
 	repositories {
+		google()
 		jcenter()
 	}
 }
@@ -17,71 +19,105 @@ allprojects {
 apply plugin: 'com.android.application'
 
 android {
-	compileSdkVersion 25
-	buildToolsVersion '25.0.3'
+	compileSdkVersion 30
+	buildToolsVersion '30.0.2'
+	ndkVersion '21.3.6528147'
+
+	defaultConfig {
+		versionCode 1
+		versionName '1.5'
+
+		minSdkVersion 16
+		targetSdkVersion 30
+
+		ndk.abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86'
+	}
 
 	sourceSets.main {
 		manifest.srcFile 'AndroidManifest.xml'
-		java.srcDirs = ['src', 'src-api', 'src-external']
-		resources.srcDirs = ['src']
+		java.srcDirs = ['src']
+		resources.srcDirs = []
 		aidl.srcDirs = ['src']
 		renderscript.srcDirs = ['src']
 		res.srcDirs = ['res']
 		assets.srcDirs = ['assets']
 		jni.srcDirs = []
-		jniLibs.srcDir 'libs'
+		jniLibs.srcDirs = []
 	}
 
 	if (file('keystore.properties').exists()) {
 		def keystoreProperties = new Properties()
 		keystoreProperties.load(new FileInputStream(file('keystore.properties')))
-
-		signingConfigs {
-			general {
-				storeFile file(keystoreProperties['store.file'])
-				storePassword keystoreProperties['store.password']
-				keyAlias keystoreProperties['key.alias']
-				keyPassword keystoreProperties['key.password']
-			}
+		signingConfigs.create('general') {
+			storeFile file(keystoreProperties['store.file'])
+			storePassword keystoreProperties['store.password']
+			keyAlias keystoreProperties['key.alias']
+			keyPassword keystoreProperties['key.password']
 		}
-
-		buildTypes.debug.signingConfig signingConfigs.general
-		buildTypes.release.signingConfig signingConfigs.general
+		buildTypes.all { signingConfig signingConfigs.general }
 	}
 
-	buildTypes {
-		release {
-			minifyEnabled false
+	buildTypes.all {
+		crunchPngs false
+		minifyEnabled false
+	}
+}
+
+import org.apache.tools.ant.taskdefs.condition.Os
+
+class ShellTask extends DefaultTask {
+	@InputFile File script
+	@Input List<String> arguments
+	@Input Map<String, Object> environment
+	@OutputDirectories FileCollection output
+
+	@TaskAction
+	def action() {
+		if (Os.isFamily(Os.FAMILY_UNIX)) {
+			project.exec {
+				commandLine script.absolutePath
+				args arguments
+				environment << this.environment
+			}.rethrowFailure().assertNormalExitValue()
+		} else {
+			throw new RuntimeException('Linux x86_64 is required to execute shell task')
 		}
 	}
+}
 
-	compileOptions {
-		sourceCompatibility JavaVersion.VERSION_1_7
-		targetCompatibility JavaVersion.VERSION_1_7
+def sharedSources = new File(project.buildDir, 'intermediates/shared_sources')
+def sharedLibraries = new File(project.buildDir, 'intermediates/shared_libraries')
+def sharedExternal = new File(project.buildDir, 'outputs/external')
+
+task sharedPrepare(type: ShellTask) {
+	script = file('shared-prepare.sh')
+	arguments = [sharedSources.absolutePath]
+	environment = [
+			FFMPEG_VERSION: '3.0.9',
+			YUV_VERSION: 'cb9a58f25fbdf8382d68680f022959022f746ef2',
+	]
+	output = files(sharedSources)
+}
+
+task sharedBuild(type: ShellTask) {
+	dependsOn sharedPrepare
+	script = file('shared-build.sh')
+	arguments = [sharedSources.absolutePath, sharedLibraries.absolutePath, sharedExternal.absolutePath]
+	environment = [
+			ANDROID_NDK_HOME: android.ndkDirectory,
+			EXTERNAL_CORES: Runtime.runtime.availableProcessors()
+	]
+	output = files(sharedLibraries, sharedExternal)
+}
+
+android.sourceSets.main.jniLibs.srcDirs = [
+		new File(sharedLibraries, 'ffmpeg'),
+		new File(sharedLibraries, 'yuv')
+]
+
+afterEvaluate {
+	android.buildTypes.all {
+		String name = it.name.capitalize()
+		tasks.getByName('compile' + name + 'Sources').dependsOn sharedBuild
 	}
 }
-
-def getNdkBuildCommand() {
-	def ndkDir = System.env.ANDROID_NDK_HOME
-	if (ndkDir == null && file('local.properties').exists()) {
-		Properties localProperties = new Properties()
-		localProperties.load(new FileInputStream(file('local.properties')))
-		ndkDir = localProperties.getProperty('ndk.dir')
-	}
-	def windows = org.gradle.internal.os.OperatingSystem.current().isWindows()
-	return (ndkDir != null ? ndkDir + File.separator : '') + 'ndk-build' + (windows ? '.cmd' : '')
-}
-
-task ndkBuildCompile(type: Exec) {
-	commandLine getNdkBuildCommand(), '-C', file('.').absolutePath
-}
-
-task ndkBuildClean(type: Exec) {
-	commandLine getNdkBuildCommand(), 'clean', file('.').absolutePath
-}
-
-tasks.withType(JavaCompile) { compileTask ->
-	compileTask.dependsOn ndkBuildCompile
-}
-
-clean.dependsOn ndkBuildClean

@@ -4,17 +4,15 @@ This extension actually contains only prebuilt static libraries without any code
 
 Follow these instructions to build this extension.
 
-# Building Guide
+## Building Guide
 
 1. Install JDK 7 or higher
 2. Install Android SDK, define `ANDROID_HOME` environment variable or set `sdk.dir` in `local.properties`
-3. Install Android NDK, define `ANDROID_NDK_HOME` environment variable or set `ndk.dir` in `local.properties`
-4. Install Gradle
-5. Build FFmpeg shared libraries and copy them to `jni/src/ffmpeg/shared`
-6. Build LibYuv shared libraries and copy them to `jni/src/yuv/shared`
-7. Run `gradle assembleRelease`
+3. Run `./gradlew assembleRelease`
 
 The resulting APK file will appear in `build/outputs/apk` directory.
+
+Additional files to be used by client will appear in `build/outputs/external` directory.
 
 ### Build Signed Binary
 
@@ -26,10 +24,3 @@ store.password=%KEYSTORE_PASSWORD%
 key.alias=%KEY_ALIAS%
 key.password=%KEY_PASSWORD%
 ```
-
-### Build Shared Libraries
-
-1. Install Android NDK, define `ANDROID_NDK_HOME` environment variable
-2. Run `./shared.sh`
-
-The resulting shared libraries and `*.h` files will appear in `output` directory.

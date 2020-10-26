@@ -1,8 +1,9 @@
 /*
-!/jni
 !/res
 !/.gitignore
 !/AndroidManifest.xml
 !/build.gradle
 !/README.md
-!/shared.sh
+!/shared-build.sh
+!/shared-prepare.sh
+!/symbols.sh
