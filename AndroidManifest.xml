@@ -15,6 +15,10 @@
 			android:value="webm" />
 
 		<meta-data
+			android:name="lib.extension.title"
+			android:value="WebM libraries" />
+
+		<meta-data
 			android:name="lib.extension.source"
 			android:value="//raw.githubusercontent.com/Mishiranu/Dashchan/master/update/data.json" />
 
