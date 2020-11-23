@@ -69,6 +69,7 @@ ffmpeg_options=(
 	'--enable-decoder=vorbis'
 	'--enable-decoder=opus'
 	'--enable-decoder=aac'
+	'--enable-decoder=mp3'
 )
 
 dav1d_build() {
